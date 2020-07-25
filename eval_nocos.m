@@ -1,6 +1,4 @@
 function posteriorProbability = eval_nocos(bun, age, neutrophil, spo2, rcdw, sodium)
-% Would it be a good idea to separately verify?
-
 %% Standardize the input data and evaluate the trained linear regression model
 % mean of each measurement from the training set
 mu_ = [25.3426973433329; 63.5685514135602; 136.325537053515; 96.0267968945655; 13.9384770804395; 6.40012139023765];
@@ -15,6 +13,8 @@ inputVector = [bun; age; sodium; spo2; rcdw; neutrophil];
 
 % standardize x using a z-score
 z = (inputVector - mu_) ./ sigma_;
+
+z(isnan(z)) = 0;  % mean imputation
 
 % perform linear regression using the model
 x = sum(z .* coefficients) + bias;
@@ -53,15 +53,16 @@ elseif x < theta2s
 else
     likelihoodSurvival = (1-p2s)*(1/sigma2s)*(1+k2s*(x-theta2s)/sigma2s)^(-1-1/k2s);
 end
+likelihoodSurvival = real(likelihoodSurvival);
 
 if x < theta1d
     likelihoodDeath = p1d*(1/sigma1d)*(1+k1d*(theta1d-x)/sigma1d)^(-1-1/k1d);
 elseif x < theta2d
     likelihoodDeath = 118.4*x^4 - 310.24*x^3 + 279.57*x^2 - 101.84*x + 13.975;
-
 else
     likelihoodDeath = (1-p2d)*(1/sigma2d)*(1+k2d*(x-theta2d)/sigma2d)^(-1-1/k2d);
 end
+likelihoodDeath = real(likelihoodDeath);
 
 posteriorProbability = likelihoodSurvival * priorSurvival / ...
     (likelihoodSurvival * priorSurvival + likelihoodDeath * priorDeath);
