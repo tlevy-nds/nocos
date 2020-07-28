@@ -1,4 +1,8 @@
-function posteriorProbability = eval_nocos(bun, age, neutrophil, spo2, rcdw, sodium)
+function posteriorProbability = eval_nocos(bun, age, neutrophil, spo2, rcdw, sodium, survival)
+if ~exist('survival', 'var') || isempty(survival)
+    % if survival is true, return P, otherwise, return 1-P
+    survival = true;
+end
 %% Standardize the input data and evaluate the trained linear regression model
 % mean of each measurement from the training set
 mu_ = [25.3426973433329; 63.5685514135602; 136.325537053515; 96.0267968945655; 13.9384770804395; 6.40012139023765];
@@ -69,3 +73,8 @@ posteriorProbability = likelihoodSurvival * priorSurvival / ...
 
 % The posterior probability can be clipped at 0.1 on the low end 0.95 on the high end
 posteriorProbability = min(max(posteriorProbability, 0.1), 0.95);
+
+if ~survival
+    % convert to a mortality calculator
+    posteriorProbability = 1 - posteriorProbability;
+end
