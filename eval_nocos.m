@@ -1,16 +1,16 @@
-function posteriorProbability = eval_nocos(bun, age, neutrophil, spo2, rcdw, sodium, survival)
+function [posteriorProbability, x] = eval_nocos(bun, age, neutrophil, spo2, rcdw, sodium, survival)
 if ~exist('survival', 'var') || isempty(survival)
     % if survival is true, return P, otherwise, return 1-P
     survival = true;
 end
 %% Standardize the input data and evaluate the trained linear regression model
 % mean of each measurement from the training set
-mu_ = [25.3426973433329; 63.5685514135602; 136.325537053515; 96.0267968945655; 13.9384770804395; 6.40012139023765];
+mu_ = [25.216167993412; 63.603301312407; 136.390009606148; 96.1058329949926; 13.9274288050143; 6.33864124449337];
 % standard deviation of each measurement from the training set
-sigma_ = [23.9802630804946; 16.3034649370891; 6.19181239135278; 3.92750269491352; 1.85445631179296;  3.9309701012879];
+sigma_ = [23.956029968784; 16.4691192040125;  6.18940329487471; 3.78873040592358; 1.8548775509972; 3.85785697600178];
 % model coefficients
-coefficients = [-0.121049007783428;  -0.091554806460523; -0.0386941891976109; 0.0321739916744435; -0.026911690410463; -0.0241198758542206];
-bias = 0.778583937953465;
+coefficients = [-0.133620220069468; -0.094421748373521; -0.04012886950106; 0.0412242494490385; -0.033754630786386; -0.0326317691937443];
+bias = 0.760179441464902;
 
 % create vector of measurements
 inputVector = [bun; age; sodium; spo2; rcdw; neutrophil];
@@ -25,25 +25,25 @@ x = sum(z .* coefficients) + bias;
 
 %% Evaluate Bayes rule to compute the posterior probability
 % model priors from the training set
-priorSurvival = 0.889291968976733;
-priorDeath = 0.110708031023267;
+priorSurvival = 0.880259775402517;
+priorDeath = 0.119740224597483;
 % likelihood function parameters from the training set
 % Pareto tails and a Levy alpha-stable distribution (approximated as a quartic polynomial) in the center
 % shape parameters (lower tail and upper tail for survival and death)
-k1s = 0.0317729750140431;
-k1d = -0.113138604379259;
-k2s = -0.329144258574277;
-k2d = -0.123313229001699;
+k1s = 0.0213031296865081;
+k1d = -0.123596410738619;
+k2s = -0.367357393601326;
+k2d = -0.141063702070723;
 % scale parameters (lower tail and upper tail for survival and death)
-sigma1s = 0.138800316294804;
-sigma1d = 0.267439621088245;
-sigma2s = 0.0790978163103251;
-sigma2d = 0.0872248666843174;
+sigma1s = 0.153599247950597;
+sigma1d = 0.303794740547108;
+sigma2s = 0.0880884786111088;
+sigma2d = 0.0979826205902811;
 % threshold parameters (lower tail and upper tail for survival and death)
-theta1s = 0.749462113399424;
-theta1d = 0.437053090637476;
-theta2s = 0.97412673479784;
-theta2d = 0.769367239119786;
+theta1s = 0.734223049257176;
+theta1d = 0.380636296498394;
+theta2s = 0.976299538590073;
+theta2d = 0.749176906772995;
 % quantiles
 p1s = 0.3;  
 p1d = 0.3;
@@ -53,7 +53,8 @@ p2d = 0.85;
 if x < theta1s
     likelihoodSurvival = p1s*(1/sigma1s)*(1+k1s*(theta1s-x)/sigma1s)^(-1-1/k1s);
 elseif x < theta2s
-    likelihoodSurvival = 919.12*x^4 - 3207.4*x^3 + 4121.9*x^2 - 2311.8*x + 479.64;
+    z = (x - 0.855261293923624) / 0.070928824473147;
+    likelihoodSurvival = 0.0161781027606685*z^4 - 0.0125273411680064*z^3 - 0.301885311044446 * z^2 - 0.0143551112333419*z + 2.53758792307174;
 else
     likelihoodSurvival = (1-p2s)*(1/sigma2s)*(1+k2s*(x-theta2s)/sigma2s)^(-1-1/k2s);
 end
@@ -62,7 +63,8 @@ likelihoodSurvival = real(likelihoodSurvival);
 if x < theta1d
     likelihoodDeath = p1d*(1/sigma1d)*(1+k1d*(theta1d-x)/sigma1d)^(-1-1/k1d);
 elseif x < theta2d
-    likelihoodDeath = 118.4*x^4 - 310.24*x^3 + 279.57*x^2 - 101.84*x + 13.975;
+    z = (x-0.564818148249197) / 0.107931193731143;
+    likelihoodDeath = 0.0102540832269135*z^4 - 0.0216265985226132*z^3 - 0.201326417582333*z^2 + 0.0746807824618428*z + 1.67058805959226;
 else
     likelihoodDeath = (1-p2d)*(1/sigma2d)*(1+k2d*(x-theta2d)/sigma2d)^(-1-1/k2d);
 end
